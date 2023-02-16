@@ -1,0 +1,55 @@
+from flask import Flask, render_template, request, redirect, url_for
+import datetime
+
+app = Flask(__name__)
+
+# Define a list of available rooms
+rooms = [
+    {'number': '101', 'price': 100},
+    {'number': '102', 'price': 110},
+    {'number': '103', 'price': 120},
+    {'number': '201', 'price': 150},
+    {'number': '202', 'price': 160},
+    {'number': '203', 'price': 170},
+]
+
+# Define a list of reservations
+reservations = []
+
+# Define the home page route
+@app.route('/')
+def home():
+    return render_template('home.html', rooms=rooms)
+
+# Define the reservation page route
+@app.route('/reserve/<room_number>')
+def reserve(room_number):
+    for room in rooms:
+        if room['number'] == room_number:
+            return render_template('reserve.html', room=room)
+    return redirect(url_for('home'))
+
+# Define the confirmation page route
+@app.route('/confirm', methods=['POST'])
+def confirm():
+    # Get the form data from the request
+    room_number = request.form['room_number']
+    name = request.form['name']
+    checkin_date = datetime.datetime.strptime(request.form['checkin_date'], '%Y-%m-%d').date()
+    checkout_date = datetime.datetime.strptime(request.form['checkout_date'], '%Y-%m-%d').date()
+    num_guests = int(request.form['num_guests'])
+
+    # Calculate the number of nights and the total price
+    num_nights = (checkout_date - checkin_date).days
+    price = next((room['price'] for room in rooms if room['number'] == room_number), 0)
+    total_price = num_nights * price
+
+    # Create a new reservation object and add it to the reservations list
+    reservation = {'room_number': room_number, 'name': name, 'checkin_date': checkin_date, 'checkout_date': checkout_date, 'num_guests': num_guests, 'total_price': total_price}
+    reservations.append(reservation)
+
+    # Return the confirmation page with the reservation data
+    return render_template('confirm.html', reservation=reservation)
+
+if __name__ == '__main__':
+    app.run(debug=True)
